@@ -1,0 +1,886 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cubo Magico 3D</title>
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+ 
+    html,
+    body {
+      width: 100%;
+      height: 100%;
+      margin: 0;
+      overflow: hidden;
+      font-family: Arial, Helvetica, sans-serif;
+      background: #000000;
+      color: #f7f7f7;
+    }
+ 
+    #scene {
+      display: block;
+      width: 100%;
+      height: 100%;
+      background: #000000;
+    }
+ 
+    #hud {
+      position: fixed;
+      top: 16px;
+      left: 16px;
+      width: min(320px, calc(100vw - 32px));
+      padding: 14px;
+      border: 1px solid rgba(255, 255, 255, 0.16);
+      border-radius: 8px;
+      background: rgba(7, 10, 24, 0.78);
+      backdrop-filter: blur(8px);
+      box-shadow: 0 16px 36px rgba(0, 0, 0, 0.32);
+      user-select: none;
+    }
+ 
+    .hud-title {
+      margin: 0 0 10px;
+      font-size: 18px;
+      font-weight: 700;
+      letter-spacing: 0;
+    }
+ 
+    .hud-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin: 8px 0;
+      font-size: 14px;
+    }
+ 
+    #turnStatus {
+      color: #9ee493;
+      font-weight: 700;
+    }
+ 
+    .buttons {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 8px;
+      margin: 12px 0;
+    }
+ 
+    button {
+      min-height: 36px;
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      border-radius: 6px;
+      background: #2563eb;
+      color: white;
+      font-weight: 700;
+      cursor: pointer;
+    }
+ 
+    button:hover {
+      background: #1d4ed8;
+    }
+ 
+    button:disabled {
+      cursor: wait;
+      opacity: 0.65;
+    }
+ 
+    .controls {
+      margin-top: 10px;
+      padding-top: 10px;
+      border-top: 1px solid rgba(255, 255, 255, 0.14);
+      font-size: 12px;
+      line-height: 1.55;
+      color: #d8e0ff;
+    }
+ 
+    .controls code {
+      display: inline-block;
+      min-width: 34px;
+      padding: 1px 5px;
+      border-radius: 4px;
+      background: rgba(255, 255, 255, 0.12);
+      color: #fff;
+      text-align: center;
+    }
+
+    .solution,
+    .history {
+      display: none;
+      margin-top: 10px;
+      padding-top: 10px;
+      border-top: 1px solid rgba(255, 255, 255, 0.14);
+    }
+
+    .solution.visible,
+    .history.visible {
+      display: block;
+    }
+
+    .solution-toggle,
+    .history-toggle {
+      width: 100%;
+      background: #111827;
+    }
+
+    .solution-toggle:hover,
+    .history-toggle:hover {
+      background: #1f2937;
+    }
+
+    .solution-body,
+    .history-body {
+      display: none;
+      margin-top: 10px;
+      font-size: 12px;
+      color: #d8e0ff;
+    }
+
+    .solution.expanded .solution-body,
+    .history.expanded .history-body {
+      display: block;
+    }
+
+    #solutionMoves,
+    #historyMoves {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      margin-top: 8px;
+      padding: 8px;
+      border-radius: 6px;
+      background: rgba(255, 255, 255, 0.1);
+      color: #ffffff;
+      line-height: 1.6;
+      word-break: break-word;
+    }
+
+    #startOverlay,
+    #winOverlay {
+      position: fixed;
+      inset: 0;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      background: rgba(0, 0, 0, 0.72);
+      text-align: center;
+      z-index: 10;
+    }
+
+    #startOverlay.visible,
+    #winOverlay.visible {
+      display: flex;
+    }
+ 
+    .start-box,
+    .win-box {
+      max-width: 420px;
+      width: 100%;
+      padding: 24px;
+      border-radius: 8px;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      background: rgba(8, 13, 30, 0.94);
+      box-shadow: 0 24px 60px rgba(0, 0, 0, 0.42);
+    }
+ 
+    .start-box h2,
+    .win-box h2 {
+      margin: 0 0 10px;
+      font-size: 28px;
+    }
+ 
+    .start-box p,
+    .win-box p {
+      margin: 0 0 18px;
+      color: #d8e0ff;
+    }
+
+    .control-table {
+      width: 100%;
+      margin: 16px 0;
+      border-collapse: collapse;
+      font-size: 14px;
+      text-align: left;
+    }
+
+    .control-table th,
+    .control-table td {
+      padding: 8px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+    }
+
+    .control-table th {
+      color: #9ee493;
+      font-size: 12px;
+      text-transform: uppercase;
+    }
+
+    .control-table code {
+      display: inline-block;
+      min-width: 42px;
+      padding: 2px 6px;
+      border-radius: 4px;
+      background: rgba(255, 255, 255, 0.12);
+      color: #ffffff;
+      text-align: center;
+    }
+ 
+    @media (max-width: 540px) {
+      #hud {
+        top: 10px;
+        left: 10px;
+        width: calc(100vw - 20px);
+        padding: 12px;
+      }
+ 
+      .hud-title {
+        font-size: 16px;
+      }
+ 
+      .controls {
+        font-size: 11px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <canvas id="scene"></canvas>
+ 
+  <section id="hud" aria-label="Painel do Cubo Magico">
+    <h1 class="hud-title">Cubo Magico 3D</h1>
+    <div class="hud-row">
+      <span>Movimentos</span>
+      <strong id="moveCount">0</strong>
+    </div>
+    <div class="hud-row">
+      <span>Status</span>
+      <strong id="turnStatus">Pronto</strong>
+    </div>
+    <div class="buttons">
+      <button id="shuffleButton" type="button">Embaralhar</button>
+      <button id="resetButton" type="button">Resetar</button>
+      <button id="undoButton" type="button">Desfazer</button>
+    </div>
+    <div id="solutionPanel" class="solution" aria-live="polite">
+      <button id="solutionToggle" class="solution-toggle" type="button" aria-expanded="false">Ver Gabarito </button>
+      <div class="solution-body">
+        <p>Este gabarito desfaz exatamente o embaralhamento gerado.</p>
+        <div id="solutionMoves"></div>
+      </div>
+    </div>
+    <div id="historyPanel" class="history visible" aria-live="polite">
+      <button id="historyToggle" class="history-toggle" type="button" aria-expanded="false">Histórico de Jogadas </button>
+      <div class="history-body">
+        <div id="historyMoves"></div>
+      </div>
+    </div>
+    <div class="controls">
+      <div><code>W</code>/<code>Shift+W</code> face superior</div>
+      <div><code>S</code>/<code>Shift+S</code> face inferior</div>
+      <div><code>E</code>/<code>Shift+E</code> face frontal</div>
+      <div><code>F</code>/<code>Shift+F</code> face traseira</div>
+      <div><code>A</code>/<code>Shift+A</code> face esquerda</div>
+      <div><code>D</code>/<code>Shift+D</code> face direita</div>
+    </div>
+  </section>
+
+  <div id="startOverlay" class="visible" role="dialog" aria-modal="true" aria-labelledby="startTitle">
+    <div class="start-box">
+      <h2 id="startTitle">Cubo Mágico 3D</h2>
+      <p>Prepare-se para resolver um embaralhamento novo.</p>
+      <table class="control-table" aria-label="Controles do jogo">
+        <thead>
+          <tr>
+            <th>Tecla</th>
+            <th>Face</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>W</code> / <code>Shift+W</code></td>
+            <td>superior</td>
+          </tr>
+          <tr>
+            <td><code>S</code> / <code>Shift+S</code></td>
+            <td>inferior</td>
+          </tr>
+          <tr>
+            <td><code>E</code> / <code>Shift+E</code></td>
+            <td>frontal</td>
+          </tr>
+          <tr>
+            <td><code>F</code> / <code>Shift+F</code></td>
+            <td>traseira</td>
+          </tr>
+          <tr>
+            <td><code>D</code> / <code>Shift+D</code></td>
+            <td>direita</td>
+          </tr>
+          <tr>
+            <td><code>A</code> / <code>Shift+A</code></td>
+            <td>esquerda</td>
+          </tr>
+        </tbody>
+      </table>
+      <button id="startButton" type="button">Iniciar Jogo</button>
+    </div>
+  </div>
+ 
+  <div id="winOverlay" role="dialog" aria-modal="true" aria-labelledby="winTitle">
+    <div class="win-box">
+      <h2 id="winTitle">Parabens!</h2>
+      <p id="winMessage">Voce resolveu o cubo.</p>
+      <button id="continueButton" type="button">Jogar Novamente</button>
+    </div>
+  </div>
+ 
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+  <script>
+    // Configuracao basica da cena, camera e renderizador.
+    const canvas = document.getElementById('scene');
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x000000);
+ 
+    const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 100);
+    camera.position.set(4, 4, 7);
+    camera.lookAt(0, 0, 0);
+ 
+    const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.setClearColor(0x000000, 1);
+ 
+    const controls = new THREE.OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true;
+    controls.dampingFactor = 0.08;
+    controls.target.set(0, 0, 0);
+    controls.update();
+ 
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+    scene.add(ambientLight);
+ 
+    const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+    directionalLight.position.set(5, 10, 7);
+    scene.add(directionalLight);
+ 
+    const moveCountEl = document.getElementById('moveCount');
+    const turnStatusEl = document.getElementById('turnStatus');
+    const shuffleButton = document.getElementById('shuffleButton');
+    const resetButton = document.getElementById('resetButton');
+    const undoButton = document.getElementById('undoButton');
+    const startOverlay = document.getElementById('startOverlay');
+    const startButton = document.getElementById('startButton');
+    const winOverlay = document.getElementById('winOverlay');
+    const winMessage = document.getElementById('winMessage');
+    const continueButton = document.getElementById('continueButton');
+    const solutionPanel = document.getElementById('solutionPanel');
+    const solutionToggle = document.getElementById('solutionToggle');
+    const solutionMoves = document.getElementById('solutionMoves');
+    const historyPanel = document.getElementById('historyPanel');
+    const historyToggle = document.getElementById('historyToggle');
+    const historyMoves = document.getElementById('historyMoves');
+ 
+    const cubelets = [];
+    const spacing = 1.08;
+    const turnStep = THREE.MathUtils.degToRad(5);
+    const faceColors = {
+      right: 0xff2d2d,
+      left: 0xff8c1a,
+      top: 0xffffff,
+      bottom: 0xffdf2e,
+      front: 0x1f7aff,
+      back: 0x20b15a,
+      hidden: 0x111111
+    };
+
+    const moveChipColors = {
+      W: { background: '#ffffff', color: '#000000' },
+      S: { background: '#ffdf2e', color: '#000000' },
+      E: { background: '#1f7aff', color: '#ffffff' },
+      F: { background: '#20b15a', color: '#ffffff' },
+      D: { background: '#ff2d2d', color: '#ffffff' },
+      A: { background: '#ff8c1a', color: '#000000' }
+    };
+ 
+    const faceDefinitions = {
+      W: { axis: 'y', layer: 1, sign: 1 },
+      S: { axis: 'y', layer: -1, sign: -1 },
+      E: { axis: 'z', layer: 1, sign: 1 },
+      F: { axis: 'z', layer: -1, sign: -1 },
+      D: { axis: 'x', layer: 1, sign: -1 },
+      A: { axis: 'x', layer: -1, sign: 1 }
+    };
+ 
+    const keyToFace = {
+      W: 'W',
+      S: 'S',
+      E: 'E',
+      F: 'F',
+      A: 'A',
+      D: 'D'
+    };
+ 
+    let moveCount = 0;
+    let isTurning = false;
+    let isShuffling = false;
+    let keyboardLocked = true;
+    let activeTurn = null;
+    let scrambleMoves = [];
+    let playerMoves = [];
+ 
+    function makeMaterial(color) {
+      return new THREE.MeshLambertMaterial({ color });
+    }
+ 
+    function makeCubeletMaterials(x, y, z) {
+      return [
+        makeMaterial(x === 1 ? faceColors.right : faceColors.hidden),
+        makeMaterial(x === -1 ? faceColors.left : faceColors.hidden),
+        makeMaterial(y === 1 ? faceColors.top : faceColors.hidden),
+        makeMaterial(y === -1 ? faceColors.bottom : faceColors.hidden),
+        makeMaterial(z === 1 ? faceColors.front : faceColors.hidden),
+        makeMaterial(z === -1 ? faceColors.back : faceColors.hidden)
+      ];
+    }
+ 
+    function makeStickerState(x, y, z) {
+      const stickers = [];
+      if (x === 1) stickers.push({ normal: new THREE.Vector3(1, 0, 0), color: faceColors.right });
+      if (x === -1) stickers.push({ normal: new THREE.Vector3(-1, 0, 0), color: faceColors.left });
+      if (y === 1) stickers.push({ normal: new THREE.Vector3(0, 1, 0), color: faceColors.top });
+      if (y === -1) stickers.push({ normal: new THREE.Vector3(0, -1, 0), color: faceColors.bottom });
+      if (z === 1) stickers.push({ normal: new THREE.Vector3(0, 0, 1), color: faceColors.front });
+      if (z === -1) stickers.push({ normal: new THREE.Vector3(0, 0, -1), color: faceColors.back });
+      return stickers;
+    }
+ 
+    // Cria os 27 cubinhos usando BoxGeometry, materiais por face e arestas pretas.
+    function createCube() {
+      const geometry = new THREE.BoxGeometry(1, 1, 1);
+      const edgeGeometry = new THREE.EdgesGeometry(geometry);
+      const edgeMaterial = new THREE.LineBasicMaterial({ color: 0x000000, linewidth: 2 });
+ 
+      for (let x = -1; x <= 1; x++) {
+        for (let y = -1; y <= 1; y++) {
+          for (let z = -1; z <= 1; z++) {
+            const mesh = new THREE.Mesh(geometry, makeCubeletMaterials(x, y, z));
+            mesh.position.set(x * spacing, y * spacing, z * spacing);
+            mesh.userData.grid = { x, y, z };
+            mesh.userData.stickers = makeStickerState(x, y, z);
+ 
+            const edges = new THREE.LineSegments(edgeGeometry, edgeMaterial);
+            mesh.add(edges);
+ 
+            cubelets.push(mesh);
+            scene.add(mesh);
+          }
+        }
+      }
+    }
+ 
+    function removeCube() {
+      while (cubelets.length) {
+        const cubelet = cubelets.pop();
+        scene.remove(cubelet);
+        cubelet.geometry.dispose();
+        cubelet.material.forEach((material) => material.dispose());
+      }
+    }
+ 
+    function roundGridValue(value) {
+      return Math.max(-1, Math.min(1, Math.round(value / spacing)));
+    }
+ 
+    function snapCubelet(cubelet) {
+      const grid = {
+        x: roundGridValue(cubelet.position.x),
+        y: roundGridValue(cubelet.position.y),
+        z: roundGridValue(cubelet.position.z)
+      };
+      cubelet.userData.grid = grid;
+      cubelet.position.set(grid.x * spacing, grid.y * spacing, grid.z * spacing);
+      cubelet.rotation.x = Math.round(cubelet.rotation.x / (Math.PI / 2)) * (Math.PI / 2);
+      cubelet.rotation.y = Math.round(cubelet.rotation.y / (Math.PI / 2)) * (Math.PI / 2);
+      cubelet.rotation.z = Math.round(cubelet.rotation.z / (Math.PI / 2)) * (Math.PI / 2);
+    }
+ 
+    function rotateStickerNormals(cubeletsInLayer, axis, angle) {
+      const matrix = new THREE.Matrix4();
+      const axisVector = new THREE.Vector3(
+        axis === 'x' ? 1 : 0,
+        axis === 'y' ? 1 : 0,
+        axis === 'z' ? 1 : 0
+      );
+      matrix.makeRotationAxis(axisVector, angle);
+ 
+      cubeletsInLayer.forEach((cubelet) => {
+        cubelet.userData.stickers.forEach((sticker) => {
+          sticker.normal.applyMatrix4(matrix);
+          sticker.normal.set(
+            Math.round(sticker.normal.x),
+            Math.round(sticker.normal.y),
+            Math.round(sticker.normal.z)
+          );
+        });
+      });
+    }
+ 
+    function setInteractionEnabled(enabled) {
+      keyboardLocked = !enabled;
+      controls.enabled = enabled;
+    }
+
+    function collapseSolutionPanel() {
+      solutionPanel.classList.remove('visible', 'expanded');
+      solutionToggle.setAttribute('aria-expanded', 'false');
+      solutionMoves.replaceChildren();
+    }
+
+    function makeMoveNotation(move) {
+      return `${move.face}${move.inverse ? "'" : ''}`;
+    }
+
+    function makeSolutionNotation(move) {
+      return `${move.face}${move.inverse ? '' : "'"}`;
+    }
+
+    function createMoveChip(text, face) {
+      const colors = moveChipColors[face];
+      const chip = document.createElement('span');
+      chip.textContent = text;
+      chip.style.background = colors.background;
+      chip.style.color = colors.color;
+      chip.style.borderRadius = '4px';
+      chip.style.padding = '2px 7px';
+      chip.style.fontWeight = 'bold';
+      chip.style.fontSize = '12px';
+      chip.style.margin = '2px';
+      chip.style.display = 'inline-block';
+      return chip;
+    }
+
+    function renderMoveChips(container, moves, notationFormatter) {
+      container.replaceChildren();
+      moves.forEach((move) => {
+        container.appendChild(createMoveChip(notationFormatter(move), move.face));
+      });
+    }
+
+    function showSolutionPanel() {
+      const solution = scrambleMoves
+        .slice()
+        .reverse();
+
+      renderMoveChips(solutionMoves, solution, makeSolutionNotation);
+      solutionPanel.classList.add('visible');
+      solutionPanel.classList.remove('expanded');
+      solutionToggle.setAttribute('aria-expanded', 'false');
+    }
+
+    function updateHistoryPanel() {
+      const visibleMoves = playerMoves.slice(-30);
+      historyMoves.replaceChildren();
+
+      if (playerMoves.length > 30) {
+        const ellipsis = document.createElement('span');
+        ellipsis.textContent = '...';
+        ellipsis.style.margin = '2px 6px 2px 2px';
+        ellipsis.style.fontWeight = 'bold';
+        historyMoves.appendChild(ellipsis);
+      }
+
+      visibleMoves.forEach((move) => {
+        historyMoves.appendChild(createMoveChip(makeMoveNotation(move), move.face));
+      });
+
+      historyPanel.classList.add('visible');
+      undoButton.disabled = isTurning || isShuffling || playerMoves.length === 0;
+    }
+
+    function showStartOverlay() {
+      winOverlay.classList.remove('visible');
+      startOverlay.classList.add('visible');
+      setInteractionEnabled(false);
+      turnStatusEl.textContent = 'Aguardando inicio';
+    }
+
+    function hideStartOverlay() {
+      startOverlay.classList.remove('visible');
+    }
+
+    function setBusyState(busy) {
+      turnStatusEl.textContent = isShuffling ? 'Embaralhando...' : (busy ? 'Girando...' : 'Pronto');
+      shuffleButton.disabled = busy || isShuffling;
+      resetButton.disabled = busy || isShuffling;
+      undoButton.disabled = busy || isTurning || isShuffling || playerMoves.length === 0;
+    }
+ 
+    function updateMoveCount() {
+      moveCountEl.textContent = String(moveCount);
+    }
+ 
+    function delay(ms) {
+      return new Promise((resolve) => window.setTimeout(resolve, ms));
+    }
+ 
+    // Inicia um giro: agrupa os 9 cubinhos da face, anima 5 graus por frame e reancora na cena.
+    function rotateFace(face, inverse = false, countMove = true, checkSolved = true) {
+      return new Promise((resolve) => {
+        if (isTurning) {
+          resolve(false);
+          return;
+        }
+ 
+        const definition = faceDefinitions[face];
+        if (!definition) {
+          resolve(false);
+          return;
+        }
+ 
+        const { axis, layer, sign } = definition;
+        const direction = inverse ? -1 : 1;
+        const finalAngle = sign * direction * (Math.PI / 2);
+        const layerCubelets = cubelets.filter((cubelet) => cubelet.userData.grid[axis] === layer);
+        const group = new THREE.Group();
+ 
+        isTurning = true;
+        setBusyState(true);
+        scene.add(group);
+ 
+        layerCubelets.forEach((cubelet) => {
+          group.attach(cubelet);
+        });
+ 
+        activeTurn = {
+          axis,
+          finalAngle,
+          currentAngle: 0,
+          group,
+          layerCubelets,
+          face,
+          inverse,
+          countMove,
+          checkSolved,
+          resolve
+        };
+      });
+    }
+ 
+    function finishTurn() {
+      const { axis, finalAngle, group, layerCubelets, face, inverse, countMove, checkSolved, resolve } = activeTurn;
+
+      if (isShuffling) {
+        console.log({ axis, finalAngle });
+      }
+ 
+      rotateStickerNormals(layerCubelets, axis, finalAngle);
+      layerCubelets.forEach((cubelet) => {
+        scene.attach(cubelet);
+        snapCubelet(cubelet);
+      });
+ 
+      scene.remove(group);
+      activeTurn = null;
+      isTurning = false;
+ 
+      if (countMove) {
+        moveCount += 1;
+        playerMoves.push({ face, inverse });
+        updateMoveCount();
+        updateHistoryPanel();
+      }
+ 
+      setBusyState(false);
+      if (checkSolved) {
+        checkVictory();
+      }
+      resolve(true);
+    }
+ 
+    function animateTurn() {
+      if (!activeTurn) return;
+ 
+      const remaining = activeTurn.finalAngle - activeTurn.currentAngle;
+      const step = Math.sign(remaining) * Math.min(Math.abs(remaining), turnStep);
+      activeTurn.group.rotation[activeTurn.axis] += step;
+      activeTurn.currentAngle += step;
+ 
+      if (Math.abs(activeTurn.finalAngle - activeTurn.currentAngle) < 0.0001) {
+        finishTurn();
+      }
+    }
+ 
+    function getStickerColorAt(normal, gridFilter) {
+      for (const cubelet of cubelets) {
+        if (!gridFilter(cubelet.userData.grid)) continue;
+        const sticker = cubelet.userData.stickers.find((item) => item.normal.equals(normal));
+        if (sticker) return sticker.color;
+      }
+      return null;
+    }
+ 
+    // Verifica se cada face externa tem todos os adesivos da mesma cor.
+    function checkVictory() {
+      if (moveCount === 0 || isShuffling) return false;
+ 
+      const checks = [
+        { normal: new THREE.Vector3(1, 0, 0), filter: (grid) => grid.x === 1 },
+        { normal: new THREE.Vector3(-1, 0, 0), filter: (grid) => grid.x === -1 },
+        { normal: new THREE.Vector3(0, 1, 0), filter: (grid) => grid.y === 1 },
+        { normal: new THREE.Vector3(0, -1, 0), filter: (grid) => grid.y === -1 },
+        { normal: new THREE.Vector3(0, 0, 1), filter: (grid) => grid.z === 1 },
+        { normal: new THREE.Vector3(0, 0, -1), filter: (grid) => grid.z === -1 }
+      ];
+ 
+      const solved = checks.every((check) => {
+        const referenceColor = getStickerColorAt(check.normal, check.filter);
+        if (referenceColor === null) return false;
+ 
+        return cubelets
+          .filter((cubelet) => check.filter(cubelet.userData.grid))
+          .every((cubelet) => {
+            const sticker = cubelet.userData.stickers.find((item) => item.normal.equals(check.normal));
+            return sticker && sticker.color === referenceColor;
+          });
+      });
+ 
+      if (solved) {
+        winMessage.textContent = `Voce resolveu o cubo em ${moveCount} movimento${moveCount === 1 ? '' : 's'}.`;
+        winOverlay.classList.add('visible');
+        setInteractionEnabled(false);
+      }
+ 
+      return solved;
+    }
+ 
+    async function shuffleCube() {
+      if (isTurning || isShuffling) return;
+ 
+      winOverlay.classList.remove('visible');
+      collapseSolutionPanel();
+      moveCount = 0;
+      updateMoveCount();
+      scrambleMoves = [];
+      playerMoves = [];
+      updateHistoryPanel();
+      isShuffling = true;
+      setInteractionEnabled(false);
+      setBusyState(true);
+ 
+      const faces = Object.keys(faceDefinitions);
+      for (let i = 0; i < 20; i++) {
+        const face = faces[Math.floor(Math.random() * faces.length)];
+        const inverse = Math.random() > 0.5;
+        scrambleMoves.push({ face, inverse });
+        await rotateFace(face, inverse, false);
+        await delay(80);
+      }
+ 
+      isShuffling = false;
+      setBusyState(false);
+      showSolutionPanel();
+      setInteractionEnabled(true);
+    }
+ 
+    function resetCube() {
+      if (isTurning) return;
+      winOverlay.classList.remove('visible');
+      moveCount = 0;
+      updateMoveCount();
+      scrambleMoves = [];
+      playerMoves = [];
+      updateHistoryPanel();
+      collapseSolutionPanel();
+      removeCube();
+      createCube();
+      setBusyState(false);
+      showStartOverlay();
+    }
+
+    async function startGame() {
+      if (isTurning || isShuffling) return;
+
+      hideStartOverlay();
+      removeCube();
+      createCube();
+      await shuffleCube();
+    }
+
+    async function restartAndShuffle() {
+      if (isTurning || isShuffling) return;
+
+      startOverlay.classList.remove('visible');
+      winOverlay.classList.remove('visible');
+      removeCube();
+      createCube();
+      await shuffleCube();
+    }
+
+    async function undoMove() {
+      if (isTurning || isShuffling || playerMoves.length === 0) return;
+
+      const move = playerMoves.pop();
+      moveCount = Math.max(0, moveCount - 1);
+      updateMoveCount();
+      updateHistoryPanel();
+      await rotateFace(move.face, !move.inverse, false, false);
+      updateHistoryPanel();
+    }
+ 
+    function handleKeydown(event) {
+      const target = event.target;
+      if (target && ['INPUT', 'TEXTAREA', 'BUTTON'].includes(target.tagName)) return;
+ 
+      const face = keyToFace[event.key.toUpperCase()];
+      if (!face || isShuffling || keyboardLocked || startOverlay.classList.contains('visible') || winOverlay.classList.contains('visible')) return;
+ 
+      event.preventDefault();
+      winOverlay.classList.remove('visible');
+      rotateFace(face, event.shiftKey, true);
+    }
+ 
+    function resizeRenderer() {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    }
+ 
+    function animate() {
+      requestAnimationFrame(animate);
+      animateTurn();
+      controls.update();
+      renderer.render(scene, camera);
+    }
+ 
+    shuffleButton.addEventListener('click', restartAndShuffle);
+    resetButton.addEventListener('click', resetCube);
+    undoButton.addEventListener('click', undoMove);
+    startButton.addEventListener('click', startGame);
+    continueButton.addEventListener('click', resetCube);
+    solutionToggle.addEventListener('click', () => {
+      const expanded = !solutionPanel.classList.contains('expanded');
+      solutionPanel.classList.toggle('expanded', expanded);
+      solutionToggle.setAttribute('aria-expanded', String(expanded));
+    });
+    historyToggle.addEventListener('click', () => {
+      const expanded = !historyPanel.classList.contains('expanded');
+      historyPanel.classList.toggle('expanded', expanded);
+      historyToggle.setAttribute('aria-expanded', String(expanded));
+    });
+    window.addEventListener('keydown', handleKeydown);
+    window.addEventListener('resize', resizeRenderer);
+ 
+    createCube();
+    updateMoveCount();
+    updateHistoryPanel();
+    showStartOverlay();
+    animate();
+  </script>
+</body>
+</html>
+ 
