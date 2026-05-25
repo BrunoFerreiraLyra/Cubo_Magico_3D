@@ -13,7 +13,7 @@ Simulação interativa de um Cubo Mágico em Three.js.
 | `D` / `Shift+D` | Direita |
 | `A` / `Shift+A` | Esquerda |
 
-> `Shift` + tecla executa o movimento inverso (sentido antihorário).
+ `Shift` + tecla executa o movimento inverso (sentido antihorário).
 
 ##  O que foi implementado
 - Cubo 3×3×3 com 27 cubinhos individuais, cada face com cor correta (branco, amarelo, laranja, vermelho, azul, verde)
